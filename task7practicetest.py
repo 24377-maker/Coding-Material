@@ -1,87 +1,101 @@
-import sqlite3 # loads sqlite3 library
+import sqlite3  # lets Python talk to a database
 
-DATABASE = "task7country.db"  #saves database filename
+conn = sqlite3.connect("task7country.db")  # opens the database file
+cursor = conn.cursor()  # lets us run SQL commands
 
-conn = sqlite3.connect(DATABASE) # opens a connection to your database
-cursor = conn.cursor() # creates a cursor , a pointe than runs ur sql queries
-
-FIELDS = {
-    "1": ("hdi", "HDI"),
-    "2": ("gdp", "GDP"),
-    "3": ("gdp_per_cap", "GDP per Capita"),
-    "4": ("population", "Population"),
-}
 
 def show_menu():
+    # prints the main menu for the user to see
     print("\n--- Country Query Tool ---")
-    print("Choose a field:")
-    for key, (_, label) in FIELDS.items():
-        print(f"  {key}. {label}")
-    print("  q. Quit")
+    print("1. HDI")
+    print("2. GDP")
+    print("3. GDP per Capita")
+    print("4. Population")
+    print("q. Quit")
+
+
+def get_field_info(choice):
+    # returns the column name and label based on what the user picked
+    if choice == "1":
+        return "hdi", "HDI"
+    elif choice == "2":
+        return "gdp", "GDP"
+    elif choice == "3":
+        return "gdp_per_cap", "GDP per Capita"
+    elif choice == "4":
+        return "population", "Population"
+
 
 def get_filter():
-    print("Filter:")
-    print("  1. Minimum value")
-    print("  2. Maximum value")
-    print("  3. Top N countries (highest)")
-    print("  4. Bottom N countries (lowest)")
-    choice = input("Choose filter: ").strip()
+    # asks the user how they want to filter the results
+    print("\nHow do you want to filter?")
+    print("1. Minimum value")
+    print("2. Maximum value")
+    print("3. Top N countries")
+    print("4. Bottom N countries")
+    choice = input("Choose: ").strip()  # .strip() removes any extra spaces the user might type
     return choice
 
-def run_query(field, filter_choice):
-    label = FIELDS[field][1]
-    col = FIELDS[field][0]
+
+def run_query(field_choice, filter_choice):
+    # gets the column name and label for the field the user picked
+    col, label = get_field_info(field_choice)
 
     if filter_choice == "1":
+        # user wants countries where the value is at least a certain number
         val = input(f"Enter minimum {label}: ").strip()
-        cursor.execute(
-            f"SELECT country, {col} FROM countries WHERE {col} >= ? ORDER BY {col} DESC",
-            (val,)
-        )
+        cursor.execute(f"SELECT country, {col} FROM countries WHERE {col} >= ? ORDER BY {col} DESC", (val,))
+
     elif filter_choice == "2":
+        # user wants countries where the value is at most a certain number
         val = input(f"Enter maximum {label}: ").strip()
-        cursor.execute(
-            f"SELECT country, {col} FROM countries WHERE {col} <= ? ORDER BY {col} ASC",
-            (val,)
-        )
+        cursor.execute(f"SELECT country, {col} FROM countries WHERE {col} <= ? ORDER BY {col} ASC", (val,))
+
     elif filter_choice == "3":
+        # user wants the top N countries with the highest values
         n = input("How many top countries? ").strip()
-        cursor.execute(
-            f"SELECT country, {col} FROM countries ORDER BY {col} DESC LIMIT ?",
-            (n,)
-        )
+        cursor.execute(f"SELECT country, {col} FROM countries ORDER BY {col} DESC LIMIT ?", (n,))
+
     elif filter_choice == "4":
+        # user wants the bottom N countries with the lowest values
         n = input("How many bottom countries? ").strip()
-        cursor.execute(
-            f"SELECT country, {col} FROM countries ORDER BY {col} ASC LIMIT ?",
-            (n,)
-        )
+        cursor.execute(f"SELECT country, {col} FROM countries ORDER BY {col} ASC LIMIT ?", (n,))
+
     else:
-        print("Invalid filter choice.")
-        return
+        print("Invalid filter.")
+        return  # stop the function early if the input was wrong
 
+    # fetchall() gets all the results from the query as a list
     rows = cursor.fetchall()
-    if not rows:
+
+    if len(rows) == 0:
         print("No results found.")
-        return
+        return  # stop early if nothing was found
 
-    print(f"\n{'Country':<25} {label}")
+    # print the results in a simple table
+    print(f"\nCountry                   {label}")
     print("-" * 45)
-    for country, value in rows:
-        print(f"{country:<25} {value:,}")
+    for row in rows:
+        country = row[0]   # first item in the row is the country name
+        value = row[1]     # second item is the number (hdi, gdp, etc.)
+        print(f"{country:<25} {value}")
 
+
+# --- main program loop ---
+# keeps running until the user types q
 while True:
     show_menu()
     field_choice = input("Your choice: ").strip()
 
     if field_choice == "q":
         print("Goodbye!")
-        break
-    if field_choice not in FIELDS:
+        break  # exits the loop and ends the program
+
+    if field_choice not in ["1", "2", "3", "4"]:
         print("Invalid choice, try again.")
-        continue
+        continue  # goes back to the top of the loop
 
     filter_choice = get_filter()
     run_query(field_choice, filter_choice)
 
-conn.close()
+conn.close()  # closes the database when the program ends
