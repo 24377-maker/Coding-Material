@@ -10,10 +10,8 @@ DB_NAME = "task8rocket.db"
 # so every SQL command has to put quotes around it - that is why you see "rockets " everywhere.
 
 
-# ------------------------------------------------------------------
 # HELPER FUNCTIONS
 # These two small functions make getting input from the user easier.
-# ------------------------------------------------------------------
 
 def get_int(prompt):
     # Asks the user a question and only accepts a whole number as the answer.
@@ -51,10 +49,8 @@ def get_text(prompt):
         print("This field can't be empty, try again.")
 
 
-# ------------------------------------------------------------------
 # VIEW FUNCTIONS
 # These functions read data from the database and print it on screen.
-# ------------------------------------------------------------------
 
 def view_all_rockets():
     # Reads every rocket from the database and prints them out.
@@ -71,7 +67,10 @@ def view_all_rockets():
         # SELECT means "get me these columns"
         # FROM "rockets " means "from the rockets table"
         # This asks the database to give us every row in the rockets table.
-        cursor.execute('SELECT rocket_id, name, manufacturer, payload_kg, status FROM "rockets "')
+        cursor.execute("""
+            SELECT rocket_id, name, manufacturer, payload_kg, status
+            FROM "rockets "
+        """)
 
         # Step 4 - collect all the results
         # fetchall() returns a list where each item is one rocket row.
@@ -108,15 +107,13 @@ def view_all_missions():
 
         # This SQL command uses a JOIN - it connects two tables together in one query.
         # The missions table stores a rocket_id number, but we want to show the real rocket name.
-        # JOIN "rockets " r ON m.rocket_id = r.rocket_id means:
-        #   "link each mission to the rocket that has the matching ID"
-        # m. means columns from the missions table
-        # r. means columns from the rockets table
+        # JOIN links each mission row to the rocket row that has the matching ID.
+        # Because two tables are joined, we write table.column so SQL knows which table each column comes from.
         cursor.execute("""
-            SELECT m.mission_id, m.mission_name, m.destination,
-                   m.launch_date, m.outcome, r.name
-            FROM missions m
-            JOIN "rockets " r ON m.rocket_id = r.rocket_id
+            SELECT mission_id, mission_name, destination,
+                   launch_date, outcome, "rockets ".name
+            FROM missions
+            JOIN "rockets " ON missions.rocket_id = "rockets ".rocket_id
         """)
 
         missions = cursor.fetchall()   # get all the results as a list
@@ -135,9 +132,7 @@ def view_all_missions():
         print(f"Database error: {e}")
 
 
-# ------------------------------------------------------------------
 # SEARCH AND DELETE FUNCTIONS
-# ------------------------------------------------------------------
 
 def search_missions():
     # Lets the user search for missions by destination and prints any matches.
@@ -154,11 +149,11 @@ def search_missions():
         # So %Mars% means "anything that contains the word Mars anywhere in it".
         # For example: "Near Mars", "Mars Orbit", and "To Mars and Back" would all match.
         cursor.execute("""
-            SELECT m.mission_id, m.mission_name, m.destination,
-                   m.launch_date, m.outcome, r.name
-            FROM missions m
-            JOIN "rockets " r ON m.rocket_id = r.rocket_id
-            WHERE m.destination LIKE ?
+            SELECT mission_id, mission_name, destination,
+                   launch_date, outcome, "rockets ".name
+            FROM missions
+            JOIN "rockets " ON missions.rocket_id = "rockets ".rocket_id
+            WHERE destination LIKE ?
         """, (f"%{term}%",))
 
         results = cursor.fetchall()
@@ -187,10 +182,11 @@ def search_rockets_by_manufacturer():
         cursor = conn.cursor()
 
         # LIKE with % wildcards matches any rocket whose manufacturer contains the search term.
-        cursor.execute(
-            'SELECT rocket_id, name, manufacturer, payload_kg, status FROM "rockets " WHERE manufacturer LIKE ?',
-            (f"%{term}%",)
-        )
+        cursor.execute("""
+            SELECT rocket_id, name, manufacturer, payload_kg, status
+            FROM "rockets "
+            WHERE manufacturer LIKE ?
+        """, (f"%{term}%",))
 
         results = cursor.fetchall()
         conn.close()
@@ -207,9 +203,7 @@ def search_rockets_by_manufacturer():
         print(f"Database error: {e}")
 
 
-# ------------------------------------------------------------------
 # MENU AND MAIN
-# ------------------------------------------------------------------
 
 def show_menu():
     # Prints the menu options for the user to choose from.
@@ -265,3 +259,5 @@ def main():
 # At Level 1 you can just treat this as the "start button" for the program.
 if __name__ == "__main__":
     main()
+
+
